@@ -13,6 +13,7 @@
     "@types/bcrypt": "^6.0.0",
     "@types/pg": "^8.15.6",
     "bcrypt": "^6.0.0",
+    "dotenv": "^17.2.3",
     "faiss-node": "^0.5.1",
     "framer-motion": "^12.23.24",
     "next": "16.0.1",
