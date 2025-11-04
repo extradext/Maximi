@@ -1,65 +1,97 @@
-import Image from "next/image";
+'use client';
+
+import { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
+import StartScreen from '@/components/StartScreen';
+import ModeSelector from '@/components/ModeSelector';
+import ControlPanel from '@/components/ControlPanel';
+import ParkedTab from '@/components/ParkedTab';
+import SavedGroupsDropdown from '@/components/SavedGroupsDropdown';
+import ThemeCustomizer from '@/components/ThemeCustomizer';
+import useMapStore from '@/lib/store';
+
+// Dynamically import MapCanvas to avoid SSR issues
+const MapCanvas = dynamic(() => import('@/components/MapCanvas'), {
+  ssr: false,
+  loading: () => (
+    <div className="flex items-center justify-center h-screen">
+      <div className="text-lg text-gray-500">Loading map...</div>
+    </div>
+  ),
+});
 
 export default function Home() {
+  const [isStarted, setIsStarted] = useState(false);
+  const [showThemeCustomizer, setShowThemeCustomizer] = useState(false);
+  const nodes = useMapStore((state) => state.nodes);
+  const mode = useMapStore((state) => state.mode);
+
+  // Clear expired parked items periodically
+  useEffect(() => {
+    const clearExpired = useMapStore.getState().clearExpiredParks;
+    const interval = setInterval(clearExpired, 60000); // Every minute
+    return () => clearInterval(interval);
+  }, []);
+
+  if (!isStarted) {
+    return <StartScreen onStart={() => setIsStarted(true)} />;
+  }
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+    <div className="relative w-full h-screen overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+      {/* Header */}
+      <header className="absolute top-0 left-0 right-0 z-50 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-b border-gray-200 dark:border-gray-700">
+        <div className="flex items-center justify-between px-6 py-3">
+          <div className="flex items-center gap-4">
+            <h1 className="text-xl font-bold text-gray-900 dark:text-white">
+              Adaptive Map
+            </h1>
+            <ModeSelector />
+          </div>
+          
+          <div className="flex items-center gap-3">
+            <SavedGroupsDropdown />
+            <button
+              onClick={() => setShowThemeCustomizer(!showThemeCustomizer)}
+              className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+              aria-label="Open theme customizer"
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+              🎨 Theme
+            </button>
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+      </header>
+
+      {/* Main Canvas */}
+      <div className="pt-16 h-full">
+        <MapCanvas />
+      </div>
+
+      {/* Control Panel */}
+      {mode === 'exploration' && (
+        <div className="absolute bottom-6 left-6 z-40">
+          <ControlPanel />
         </div>
-      </main>
+      )}
+
+      {/* Parked Tab */}
+      <div className="absolute bottom-6 right-6 z-40">
+        <ParkedTab />
+      </div>
+
+      {/* Theme Customizer */}
+      {showThemeCustomizer && (
+        <div className="absolute top-16 right-0 z-50">
+          <ThemeCustomizer onClose={() => setShowThemeCustomizer(false)} />
+        </div>
+      )}
+
+      {/* Coming Soon Overlay (for feature-flagged features) */}
+      {process.env.NEXT_PUBLIC_ENABLE_PAYMENTS === 'true' && (
+        <div className="absolute top-20 right-6 bg-yellow-50 border border-yellow-200 rounded-lg px-4 py-2 text-sm text-yellow-800">
+          🚀 Pro features coming soon!
+        </div>
+      )}
     </div>
   );
 }
