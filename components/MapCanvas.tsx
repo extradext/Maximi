@@ -41,6 +41,7 @@ export default function MapCanvas() {
         y: dimensions.height / 2,
         isPinned: false,
         isExpanded: false,
+        children: [],
       };
       useMapStore.getState().addNode(seedNode);
     }
