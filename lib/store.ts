@@ -7,7 +7,7 @@ export interface Node {
   x: number;
   y: number;
   parentId?: string;
-  children?: string[];
+  children: string[];
   isPinned: boolean;
   isExpanded: boolean;
   data?: any;
