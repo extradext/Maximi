@@ -1,15 +1,184 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
-  provider = "prisma-client"
-  output   = "../app/generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+// Core Entities
+model User {
+  id            String         @id @default(uuid())
+  email         String         @unique
+  name          String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  sessions      SessionState[]
+  pins          Pin[]
+  parkedItems   ParkedItem[]
+  themePresets  ThemePreset[]
+  votes         Vote[]
+  analytics     Analytics[]
+  
+  // Dormant monetization fields
+  planId        String?        @default("free")
+  plan          Plan?          @relation(fields: [planId], references: [id])
+  subscriptions Subscription[]
+  payments      Payment[]
+  
+  @@map("users")
+}
+
+model SessionState {
+  id          String       @id @default(uuid())
+  userId      String
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String       @default("Untitled Session")
+  mode        String       @default("exploration") // exploration, curriculum, classroom, publishing
+  data        Json         // Stores the entire map state
+  isPinned    Boolean      @default(false)
+  expiresAt   DateTime?
+  isArchived  Boolean      @default(false)
+  shareHash   String?      @unique
+  isPublic    Boolean      @default(false)
+  forkedFrom  String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  
+  @@index([userId])
+  @@index([shareHash])
+  @@map("session_states")
+}
+
+model Pin {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sessionId   String?
+  nodeId      String
+  nodeData    Json     // Stores node content, position, connections
+  isLocked    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  
+  @@index([userId])
+  @@index([sessionId])
+  @@map("pins")
+}
+
+model ParkedItem {
+  id          String    @id @default(uuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  nodeId      String
+  nodeData    Json
+  expiresAt   DateTime?
+  customTimer Int?      // in minutes
+  createdAt   DateTime  @default(now())
+  
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("parked_items")
+}
+
+model ThemePreset {
+  id            String   @id @default(uuid())
+  userId        String?
+  user          User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name          String
+  isDefault     Boolean  @default(false)
+  config        Json     // Stores theme configuration
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  @@index([userId])
+  @@map("theme_presets")
+}
+
+model Vote {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  nodeId      String
+  snapshotId  String?
+  voteType    String   // thumbs_up, thumbs_down
+  createdAt   DateTime @default(now())
+  
+  @@unique([userId, nodeId, snapshotId])
+  @@index([nodeId])
+  @@map("votes")
+}
+
+model Analytics {
+  id          String   @id @default(uuid())
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  eventType   String   // expansion, pin, refresh, vote, mode_switch, snapshot, fork
+  eventData   Json?
+  createdAt   DateTime @default(now())
+  
+  @@index([userId])
+  @@index([eventType])
+  @@index([createdAt])
+  @@map("analytics")
+}
+
+// Dormant Monetization Tables (Feature-flagged)
+model Plan {
+  id          String   @id @default(uuid())
+  name        String   @unique // free, pro, creator
+  displayName String
+  price       Float
+  features    Json
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  users       User[]
+  
+  @@map("plans")
+}
+
+model Subscription {
+  id              String   @id @default(uuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  stripeId        String?  @unique
+  status          String   // active, canceled, past_due
+  currentPeriodEnd DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@index([userId])
+  @@map("subscriptions")
+}
+
+model Payment {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount      Float
+  currency    String   @default("usd")
+  status      String   // succeeded, pending, failed
+  stripeId    String?  @unique
+  description String?
+  createdAt   DateTime @default(now())
+  
+  @@index([userId])
+  @@map("payments")
+}
+
+model AIModelLens {
+  id          String   @id @default(uuid())
+  name        String   @unique // explorer, scholar, creator, tutor, enterprise
+  displayName String
+  description String
+  provider    String   // openai, anthropic, gemini
+  model       String
+  price       Float
+  planRequired String? // null for free, "pro", "creator", "enterprise"
+  isActive    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("ai_model_lenses")
 }
