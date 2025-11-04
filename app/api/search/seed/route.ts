@@ -50,7 +50,7 @@ async function generateSeedNodes(
     `${topic} Future Trends`,
   ];
 
-  const centerNode = {
+  const centerNode: Node = {
     id: crypto.randomUUID(),
     label: topic,
     x: 400,
