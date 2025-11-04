@@ -73,11 +73,20 @@ async function main() {
   ];
 
   for (const preset of presets) {
-    await prisma.themePreset.upsert({
-      where: { name: preset.name },
-      update: preset,
-      create: preset,
+    const existing = await prisma.themePreset.findFirst({
+      where: { name: preset.name, userId: null },
     });
+    
+    if (existing) {
+      await prisma.themePreset.update({
+        where: { id: existing.id },
+        data: preset,
+      });
+    } else {
+      await prisma.themePreset.create({
+        data: preset,
+      });
+    }
     console.log(`✓ Created theme preset: ${preset.name}`);
   }
 
