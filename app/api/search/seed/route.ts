@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { successResponse, errorResponse } from '@/lib/api';
 import { getAIConfig, generateWeightedQuery, type QueryContext } from '@/lib/aiRouter';
+import type { Node } from '@/lib/store';
 
 /**
  * POST /api/search/seed
