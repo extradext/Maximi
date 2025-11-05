@@ -1,3 +1,4 @@
+
 {
   "name": "app",
   "version": "0.1.0",
@@ -8,9 +9,6 @@
     "start": "next start",
     "lint": "eslint",
     "postinstall": "prisma generate"
-  },
-  "prisma": {
-    "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.18.0",
